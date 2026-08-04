@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where Am I? — Sensor Fusion &amp; Kalman Filters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F7F9;
+  --grid:#DCE6EC;
+  --panel:#FFFFFF;
+  --ink:#16283B;
+  --muted:#5B7186;
+  --line:#C7D5DE;
+  --dr:#7A4FD0;      /* dead reckoning: violet */
+  --gps:#E07B1F;     /* GPS: orange */
+  --fused:#0B8F6B;   /* Kalman fused: green */
+  --dr-soft:#EFE8FB;
+  --gps-soft:#FBEEDD;
+  --fused-soft:#DFF3EC;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+
+body{
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    var(--paper);
+  background-size:28px 28px, 28px 28px, auto;
+  color:var(--ink);
+  font-family:"Public Sans", system-ui, -apple-system, sans-serif;
+  font-size:17px;
+  line-height:1.65;
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 96px}
+
+/* ---------- hero ---------- */
+header{padding:72px 0 40px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:14px;
+}
+h1{
+  font-family:"Space Grotesk",sans-serif;font-weight:700;
+  font-size:clamp(38px,7vw,62px);line-height:1.05;letter-spacing:-0.02em;
+}
+h1 .q{color:var(--fused)}
+.sub{margin-top:18px;max-width:56ch;color:var(--muted);font-size:19px}
+.legend{
+  display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;
+  font-family:"IBM Plex Mono",monospace;font-size:13px;
+}
+.legend span{display:flex;align-items:center;gap:8px}
+.chip{width:22px;height:0;border-top:3px solid var(--ink);display:inline-block}
+.chip.dashed{border-top-style:dashed}
+
+/* ---------- sections ---------- */
+section{margin-top:64px}
+h2{
+  font-family:"Space Grotesk",sans-serif;font-weight:700;
+  font-size:clamp(26px,4.4vw,34px);letter-spacing:-0.015em;line-height:1.15;
+}
+.step{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--muted);
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;
+}
+section p{margin-top:16px;max-width:64ch}
+strong{font-weight:600}
+.dr-t{color:var(--dr);font-weight:600}
+.gps-t{color:var(--gps);font-weight:600}
+.fused-t{color:var(--fused);font-weight:600}
+
+.callout{
+  margin-top:22px;padding:16px 18px;background:var(--panel);
+  border:1px solid var(--line);border-left:4px solid var(--fused);
+  border-radius:8px;max-width:64ch;
+}
+.callout.orange{border-left-color:var(--gps)}
+.callout.violet{border-left-color:var(--dr)}
+
+/* ---------- equations ---------- */
+.eq{
+  margin-top:18px;padding:16px 20px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;max-width:64ch;
+  font-family:"IBM Plex Mono",monospace;font-size:15px;overflow-x:auto;
+}
+.eq .line{white-space:nowrap;padding:3px 0;letter-spacing:.01em}
+.eq .line b{color:var(--fused);font-weight:600;margin-right:6px}
+.eq .who{
+  display:block;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:13.5px;color:var(--muted);font-family:"Public Sans",sans-serif;
+  white-space:normal;line-height:1.7;
+}
+.eq .who code{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink);
+  background:#EEF3F6;border:1px solid var(--line);border-radius:4px;padding:1px 6px;
+}
+.eq .who .note{display:block;margin-top:8px}
+.eq sub,.eq sup{font-size:11px}
+
+/* ---------- widget shell ---------- */
+.widget{
+  margin-top:26px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 1px 0 rgba(22,40,59,.05), 0 10px 30px -18px rgba(22,40,59,.25);
+  overflow:hidden;
+}
+.widget-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:14px 18px;border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:13px;
+}
+.widget-head .name{font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.widget-head .tag{color:var(--muted)}
+.widget-body{padding:18px}
+canvas{display:block;width:100%;border:1px solid var(--line);border-radius:8px;background:#FBFDFE}
+
+.controls{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:16px;align-items:flex-end}
+.control{min-width:170px;flex:1}
+.control label{
+  display:flex;justify-content:space-between;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);
+  margin-bottom:6px;
+}
+.control label output{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink);cursor:pointer}
+button{
+  font-family:"Space Grotesk",sans-serif;font-weight:500;font-size:15px;
+  background:var(--ink);color:#fff;border:none;border-radius:8px;
+  padding:10px 18px;cursor:pointer;
+}
+button:hover{background:#233C57}
+button:focus-visible, input:focus-visible{outline:3px solid var(--fused);outline-offset:2px}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+button.ghost:hover{background:rgba(22,40,59,.06)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.toggle{
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;
+  border:1.5px solid var(--line);background:#fff;color:var(--muted);
+  border-radius:999px;padding:7px 14px;cursor:pointer;
+}
+.toggle[aria-pressed=true]{color:#fff}
+.toggle.t-truth[aria-pressed=true]{background:var(--ink);border-color:var(--ink)}
+.toggle.t-dr[aria-pressed=true]{background:var(--dr);border-color:var(--dr)}
+.toggle.t-gps[aria-pressed=true]{background:var(--gps);border-color:var(--gps)}
+.toggle.t-fused[aria-pressed=true]{background:var(--fused);border-color:var(--fused)}
+
+.readouts{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.readout{
+  flex:1;min-width:130px;padding:10px 14px;border-radius:8px;
+  border:1px solid var(--line);background:#FBFDFE;
+  font-family:"IBM Plex Mono",monospace;
+}
+.readout .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.readout .v{font-size:20px;font-weight:600;margin-top:2px}
+.readout.r-dr{background:var(--dr-soft)} .readout.r-dr .v{color:var(--dr)}
+.readout.r-gps{background:var(--gps-soft)} .readout.r-gps .v{color:var(--gps)}
+.readout.r-fused{background:var(--fused-soft)} .readout.r-fused .v{color:var(--fused)}
+
+.bars{margin-top:16px;display:grid;gap:8px}
+.bar-row{display:grid;grid-template-columns:120px 1fr 64px;gap:10px;align-items:center;
+  font-family:"IBM Plex Mono",monospace;font-size:13px}
+.bar-track{height:14px;background:#EEF3F6;border-radius:7px;overflow:hidden}
+.bar-fill{height:100%;border-radius:7px;width:0%;transition:width .35s ease}
+@media (prefers-reduced-motion:reduce){.bar-fill{transition:none}}
+
+.hint{margin-top:12px;font-size:14.5px;color:var(--muted);max-width:64ch}
+.footer{
+  margin-top:80px;padding-top:24px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:14.5px;font-family:"IBM Plex Mono",monospace;
+}
+@media (max-width:560px){
+  .bar-row{grid-template-columns:88px 1fr 56px}
+  body{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Sensor fusion · dead reckoning · GPS · Kalman filters</div>
+  <h1>Where am I<span class="q">?</span><br>How a robot finds itself.</h1>
+  <p class="sub">A robot has no eyes in the sky and no gut feeling. All it has are sensors — and every sensor lies a little. This is the story of how robots combine several unreliable answers into one reliable one.</p>
+  <div class="legend">
+    <span><span class="chip dashed" style="border-color:var(--ink)"></span>truth</span>
+    <span><span class="chip" style="border-color:var(--dr)"></span>dead reckoning</span>
+    <span><span class="chip" style="border-color:var(--gps)"></span>GPS</span>
+    <span><span class="chip" style="border-color:var(--fused)"></span>Kalman fused</span>
+  </div>
+</header>
+
+<!-- ============ 1. sensors lie ============ -->
+<section>
+  <div class="step">Part 1 / Every sensor lies a little</div>
+  <h2>No sensor tells the whole truth</h2>
+  <p>Measure the same table three times with a tape measure and you'll get three slightly different numbers. Sensors are the same. A distance sensor on a robot might report 98&nbsp;cm, then 101&nbsp;cm, then 99&nbsp;cm for a wall that never moved. That random wobble is called <strong>noise</strong>.</p>
+  <p>Engineers put a number on the wobble: the <strong>standard deviation</strong>, written σ (sigma) — roughly "the typical size of the error." A sensor with σ = 3&nbsp;cm usually lands within ±3&nbsp;cm of the truth, and almost always within ±2σ = ±6&nbsp;cm. In symbols, one reading looks like this:</p>
+  <div class="eq">
+    <div class="line">z&nbsp;=&nbsp;x&nbsp;+&nbsp;v,&nbsp;&nbsp;&nbsp;v ~ random noise of size σ</div>
+    <span class="who"><code>z</code> — what the sensor reports (the only thing you get to see) · <code>x</code> — the true value you actually want · <code>v</code> — this particular reading's random error · <code>σ</code> — the standard deviation, the typical size of v.<span class="note">You see z; you want x.</span></span>
+  </div>
+  <p><strong>Sensor fusion</strong> is the art of combining several noisy sensors so the combination is better than any one of them alone. That sounds impossible — how does adding a <em>worse</em> sensor ever help? Try it below.</p>
+
+  <div class="widget" id="w1">
+    <div class="widget-head"><span class="name">Widget 01 — Blend two sensors</span><span class="tag">1-D fusion</span></div>
+    <div class="widget-body">
+      <p style="margin-top:0;font-size:15px;color:var(--muted)">A cat is hiding somewhere along a 100&nbsp;cm shelf. A <strong style="color:var(--fused)">laser sensor</strong> (σ = 3 cm) and a <strong style="color:var(--gps)">sonar sensor</strong> (σ = 8 cm) each guess where. Slide the trust dial, then take readings.</p>
+      <canvas id="c1" height="170"></canvas>
+      <div class="controls">
+        <div class="control" style="flex:2">
+          <label><span>Trust dial</span><output id="w1trust">80% laser / 20% sonar</output></label>
+          <input type="range" id="w1slider" min="0" max="100" value="80" aria-label="Percent trust in laser sensor">
+        </div>
+        <div class="btnrow">
+          <button id="w1read">Take a reading</button>
+          <button id="w1trials" class="ghost">Run 300 readings</button>
+        </div>
+      </div>
+      <div class="bars" id="w1bars" hidden>
+        <div class="bar-row"><span>Laser alone</span><div class="bar-track"><div class="bar-fill" id="w1bL" style="background:var(--fused)"></div></div><span id="w1eL">—</span></div>
+        <div class="bar-row"><span>Sonar alone</span><div class="bar-track"><div class="bar-fill" id="w1bS" style="background:var(--gps)"></div></div><span id="w1eS">—</span></div>
+        <div class="bar-row"><span>Your blend</span><div class="bar-track"><div class="bar-fill" id="w1bB" style="background:var(--dr)"></div></div><span id="w1eB">—</span></div>
+      </div>
+      <p class="hint" id="w1hint">Average error over many readings appears here. Shorter bar = better guess.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The punchline:</strong> around 85% laser / 15% sonar, the blend beats the laser <em>by itself</em>. Even a sloppy second opinion carries a little real information — the trick is weighting each sensor by how much you trust it. Hold that thought; it's the entire secret of the Kalman filter.
+  </div>
+
+  <p>There's a formula for the best dial setting, called <strong>inverse-variance weighting</strong>: trust each sensor in proportion to 1/σ². (Squaring σ gives the <strong>variance</strong> — the standard currency of uncertainty, because variances of independent errors simply add.)</p>
+  <div class="eq">
+    <div class="line">w<sub>laser</sub> = σ<sub>sonar</sub>² / (σ<sub>laser</sub>² + σ<sub>sonar</sub>²) = 8² / (3² + 8²) = 64/73 ≈ 0.88</div>
+    <div class="line">estimate = w · z<sub>laser</sub> + (1 − w) · z<sub>sonar</sub></div>
+    <span class="who"><code>w<sub>laser</sub></code> — the weight (trust fraction, 0–1) given to the laser; the sonar gets the leftover 1 − w · <code>z<sub>laser</sub></code>, <code>z<sub>sonar</sub></code> — the two sensors' readings · <code>σ<sub>laser</sub></code>, <code>σ<sub>sonar</sub></code> — each sensor's typical error (3 cm and 8 cm here) · <code>σ²</code> — a σ squared, called the variance.<span class="note">Notice the crossover: the <em>sonar's</em> variance sits on top of the <em>laser's</em> weight. The sloppier the sonar, the harder the dial swings toward the laser — 88% here, close to the ~85% you likely found by hand.</span></span>
+  </div>
+  <p>Even better, the blend's own uncertainty obeys a beautiful rule — variances combine like resistors in parallel:</p>
+  <div class="eq">
+    <div class="line">1/σ<sub>blend</sub>² = 1/σ<sub>laser</sub>² + 1/σ<sub>sonar</sub>²&nbsp;&nbsp;&nbsp;→&nbsp;&nbsp;&nbsp;σ<sub>blend</sub> = 1/√(1/9 + 1/64) ≈ 2.81 cm</div>
+    <span class="who"><code>σ<sub>blend</sub></code> — the typical error of the weighted blend itself · <code>σ<sub>laser</sub></code>, <code>σ<sub>sonar</sub></code> — the individual sensors' typical errors · <code>1/σ²</code> — a quantity engineers call <em>precision</em>: precisions add, so the blend is always more precise than either input.<span class="note">2.81 cm beats the laser's 3 cm — which is why the blend won in the widget. Adding a sensor, however sloppy, can only <em>shrink</em> the blend's σ. It can never make things worse (as long as you weight it honestly).</span></span>
+  </div>
+</section>
+
+<!-- ============ 2. dead reckoning ============ -->
+<section>
+  <div class="step">Part 2 / Counting your steps</div>
+  <h2>Dead reckoning: smooth, fast… and drifting</h2>
+  <p>Close your eyes and walk across a room, counting steps. You always know <em>roughly</em> where you are — each step adds about 60&nbsp;cm in the direction you're facing. That's <span class="dr-t">dead reckoning</span>: estimating position by adding up your own movements.</p>
+  <p>Robots do this with wheel encoders (counting wheel turns) and gyroscopes. It updates hundreds of times per second and is beautifully smooth. But every step has a tiny error — a bit of wheel slip, a slightly off heading — and those errors <strong>never get erased</strong>. They pile up. The longer you drive, the more lost you get.</p>
+  <p>In symbols, dead reckoning is just running a sum. The estimate after step k is the estimate after step k−1, plus the step your <strong>odometry</strong> (wheel encoders + gyro) says you took:</p>
+  <div class="eq">
+    <div class="line">x̂<sub>k</sub> = x̂<sub>k−1</sub> + Δx<sub>k</sub> + v<sub>k</sub></div>
+    <span class="who"><code>x̂<sub>k</sub></code> — the position estimate after step k ("x-hat"; the hat means <em>estimate of</em> x, not x itself) · <code>k</code> — the step number: 1, 2, 3, … · <code>Δx<sub>k</sub></code> — the true distance moved during step k · <code>v<sub>k</sub></code> — that step's measurement error (slip, quantization, gyro wander).<span class="note">Every v<sub>k</sub> gets baked into the running sum forever — nothing in this equation can remove old errors.</span></span>
+  </div>
+  <p>Summing N independent random errors is a <strong>random walk</strong>, and random walks have a signature growth rate: the typical accumulated error grows like <strong>σ<sub>step</sub>·√N</strong>. Worse, any consistent <strong>bias</strong> — say a wheel that's 1% smaller than the code thinks — adds error proportional to N itself, growing linearly and without limit. Engineers call this <strong>unbounded error</strong>: given enough time, dead reckoning is guaranteed to be arbitrarily wrong.</p>
+
+  <div class="widget">
+    <div class="widget-head"><span class="name">Widget 02 — Watch the drift</span><span class="tag">odometry only</span></div>
+    <div class="widget-body">
+      <p style="margin-top:0;font-size:15px;color:var(--muted)">The robot drives a figure-eight it knows by heart. The dashed line is where it truly is; the <strong style="color:var(--dr)">violet line</strong> is where its step-counting <em>thinks</em> it is.</p>
+      <canvas id="c2" height="300"></canvas>
+      <div class="controls">
+        <div class="control">
+          <label><span>Wheel slip / noise</span><output id="w2out">medium</output></label>
+          <input type="range" id="w2slip" min="1" max="10" value="5" aria-label="Wheel slip amount">
+        </div>
+        <div class="btnrow">
+          <button id="w2go">Drive</button>
+          <button id="w2reset" class="ghost">Reset</button>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="readout r-dr"><div class="k">Position error</div><div class="v" id="w2err">0 cm</div></div>
+        <div class="readout"><div class="k">Trend</div><div class="v" id="w2trend">—</div></div>
+      </div>
+      <p class="hint">Reset and drive a few times — the drift is random, but it always <em>grows</em>. Dead reckoning is confident at first and hopeless later.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. GPS ============ -->
+<section>
+  <div class="step">Part 3 / A nudge from the sky</div>
+  <h2>GPS: jittery, slow… but honest</h2>
+  <p>Now the opposite kind of sensor. A <span class="gps-t">global positioning</span> fix — GPS outdoors, or a camera spotting a known landmark indoors — measures where you are <em>from the outside</em>. Each fix is noisy: it might be a few meters off in a random direction. And fixes arrive slowly, maybe once a second.</p>
+  <p>But here's its superpower: the errors <strong>don't accumulate</strong>. A GPS fix taken after an hour of driving is exactly as good as one taken at the start. GPS never gets <em>more</em> lost.</p>
+  <p>That's because GPS is an <strong>absolute</strong> measurement of position, not a <strong>relative</strong> measurement of motion. Compare its equation to dead reckoning's — there's no running sum, so there's nowhere for old errors to hide:</p>
+  <div class="eq">
+    <div class="line">z<sub>k</sub> = x<sub>k</sub> + v<sub>k</sub>,&nbsp;&nbsp;&nbsp;σ<sub>gps</sub> constant for all k</div>
+    <span class="who"><code>z<sub>k</sub></code> — the GPS fix received at time k · <code>x<sub>k</sub></code> — the true position at that moment · <code>v<sub>k</sub></code> — that fix's error, <em>fresh</em> every time and independent of all previous fixes · <code>σ<sub>gps</sub></code> — the fix error's typical size, the same at k = 1 and k = 1,000,000.<span class="note">No running sum, so old errors have nowhere to hide: the error is <strong>bounded</strong> — it wobbles around σ<sub>gps</sub> forever — versus dead reckoning's <strong>unbounded</strong> σ<sub>step</sub>·√N. The trade-off: fixes arrive at a low <strong>update rate</strong> (a few Hz at best) and can lag reality by a fraction of a second (<strong>latency</strong>).</span></span>
+  </div>
+
+  <div class="widget">
+    <div class="widget-head"><span class="name">Widget 03 — GPS pings</span><span class="tag">global fixes only</span></div>
+    <div class="widget-body">
+      <p style="margin-top:0;font-size:15px;color:var(--muted)">Same robot, same figure-eight. Each <strong style="color:var(--gps)">orange dot</strong> is one GPS fix. Scattered — but always scattered <em>around the truth</em>.</p>
+      <canvas id="c3" height="300"></canvas>
+      <div class="controls">
+        <div class="control">
+          <label><span>GPS noise</span><output id="w3out">medium</output></label>
+          <input type="range" id="w3noise" min="1" max="10" value="5" aria-label="GPS noise amount">
+        </div>
+        <div class="btnrow">
+          <button id="w3go">Drive</button>
+          <button id="w3reset" class="ghost">Reset</button>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="readout r-gps"><div class="k">Latest fix error</div><div class="v" id="w3err">— cm</div></div>
+        <div class="readout"><div class="k">Trend</div><div class="v" id="w3trend">—</div></div>
+      </div>
+      <p class="hint">Compare with Widget 02: dead reckoning's error <em>grows</em>; GPS error just <em>wobbles</em>. Two sensors with exactly opposite personalities.</p>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ 4. vision as gps ============ -->
+<section>
+  <div class="step">Part 4 / GPS without satellites</div>
+  <h2>Cameras + markers + a map: a homemade GPS</h2>
+  <p>GPS needs a sky. Indoors — a warehouse, a gym, a competition field — satellites are useless. But look back at Part 3: nothing there actually required satellites. What it required was an <strong>absolute</strong> measurement, a sensor that reports "here is where you are on the map." A camera can be exactly that sensor.</p>
+  <p>The recipe has three ingredients. A <strong>camera</strong>. A set of <strong>fiducial markers</strong> — high-contrast printed patterns like AprilTags or QR-style squares, engineered so software can detect them and tell them apart at a glance. And a <strong>map</strong>: a list of exactly where each marker was surveyed and bolted down. When the camera spots marker #7, the vision pipeline measures the marker's range and bearing — really its full <strong>pose</strong> relative to the camera — and since the map says where marker #7 lives in the world, you can solve backwards for where the robot must be standing:</p>
+  <div class="eq">
+    <div class="line">z<sub>vision</sub> = m − d</div>
+    <span class="who"><code>z<sub>vision</sub></code> — the robot's position according to this tag sighting; it plays the exact role a GPS fix z played in Part 3 · <code>m</code> — the marker's position, looked up from the map (known in advance) · <code>d</code> — the camera-measured offset from robot to marker (range and bearing, turned into a displacement) · written for one axis; in 2-D it's the same subtraction done for x and y separately.<span class="note">All the imperfections — pixel noise, lens distortion, a slightly mis-surveyed map — get lumped into a fresh error v on each sighting, exactly like a GPS fix's noise.</span></span>
+  </div>
+  <p>Squint and this is the Part 3 equation again: one absolute fix, fresh noise every frame, <strong>no running sum</strong>. Bounded error. Zero drift. A modest update rate (however fast the pipeline runs) and some latency (the image takes time to process). To the Kalman filter, a tag sighting and a satellite fix are the same species of measurement — everything in the next two parts applies unchanged if you swap "GPS ping" for "tag sighting."</p>
+  <p>There is one genuinely useful difference: vision noise isn't constant. A large, close, squarely-viewed tag gives a crisp fix (small σ); a distant tag seen edge-on gives a mushy one (σ grows quickly with range and viewing angle). And the filter has a ready-made answer — let <strong>R change per measurement</strong>. Hand it a fresh R = σ² with every sighting, and the gain K = P/(P + R) automatically leans hard on close tags and politely shrugs at far ones. Same machinery as before; the trust dial just reads the fine print on each individual measurement.</p>
+  <p>This pattern is everywhere: competition robots localizing off AprilTags mounted around the field, warehouse robots reading floor markers, VR headsets tracking features on your walls — and on Mars, where there are no satellites at all, landers and helicopters navigate by matching camera views against orbital terrain maps: natural landmarks acting as markers nobody had to bolt down.</p>
+
+  <div class="callout orange">
+    <strong>The setup:</strong> <span class="dr-t">dead reckoning</span> is smooth and fast but drifts forever. A <span class="gps-t">global fix</span> — GPS outdoors, a camera glancing at mapped markers indoors — is jittery and slow but never drifts. Neither is good enough alone. What if each one could cover for the other's weakness?
+  </div>
+</section>
+
+<!-- ============ 5. the kalman idea ============ -->
+<section>
+  <div class="step">Part 5 / The big idea</div>
+  <h2>The Kalman filter: predict, then correct</h2>
+  <p>In 1960, engineer Rudolf Kálmán wrote down a recipe for exactly this problem — NASA used it to guide Apollo to the Moon. Strip away the math and the recipe is two steps, repeated forever:</p>
+  <p><strong>1. Predict.</strong> Between GPS fixes, move your position estimate using dead reckoning. But be humble: every prediction makes you a little <em>less sure</em>, so let your "confidence bubble" grow.</p>
+  <p><strong>2. Correct.</strong> When a GPS fix arrives, blend it with your prediction — exactly like the trust dial in Widget 01. And here's the genius part: the filter <em>sets the dial automatically</em>. Big confidence bubble (you've been guessing a while)? Trust the GPS more. Tiny bubble (you just corrected)? Mostly ignore this noisy fix. After each correction, the bubble shrinks.</p>
+  <p>That automatic trust setting has a fancy name — the <strong>Kalman gain</strong> — but it's just the dial: "how much do I believe this new measurement versus what I already thought?"</p>
+  <p>Here is the entire filter for one dimension. The estimate is x̂, and the confidence bubble is tracked as a variance P (bubble radius ≈ √P). Two noise numbers are chosen ahead of time by the engineer: <strong>Q</strong>, the <strong>process noise</strong> — how much variance each prediction adds — and <strong>R</strong>, the <strong>measurement noise</strong> — the sensor's variance, σ<sub>gps</sub>².</p>
+  <div class="eq">
+    <div class="line"><b>Predict</b>&nbsp;&nbsp;x̂ ← x̂ + u&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;P ← P + Q</div>
+    <div class="line"><b>Gain</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;K = P / (P + R)</div>
+    <div class="line"><b>Correct</b>&nbsp;&nbsp;x̂ ← x̂ + K · (z − x̂)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;P ← (1 − K) · P</div>
+    <span class="who"><code>x̂</code> — the current position estimate · <code>P</code> — the estimate's variance: the confidence bubble, squared (bubble radius ≈ √P) · <code>u</code> — the step reported by odometry since the last cycle · <code>Q</code> — process noise: variance added by each prediction, chosen from how sloppy the odometry is · <code>z</code> — the incoming GPS fix · <code>R</code> — measurement noise: the fix's variance, σ<sub>gps</sub>² · <code>(z − x̂)</code> — the <strong>innovation</strong>: "how surprised was I by this measurement?" · <code>K</code> — the Kalman gain, the trust dial, a number between 0 and 1 computed automatically from the two variances · <code>←</code> — "gets replaced by": each line overwrites the old value with the new one.</span>
+  </div>
+  <p>Read the gain formula as a story. If P ≫ R — bubble huge after a long stretch of guessing — then K → 1 and the estimate leaps to the fix. If P ≪ R — you just corrected, and the sensor is comparatively noisy — then K → 0 and the fix is politely ignored. And the last line, P ← (1 − K)·P, guarantees every measurement shrinks the bubble at least a little: the "sloppy second opinions still help" rule from Part 1, now running automatically. It's the same math, too — K = P/(P + R) <em>is</em> inverse-variance weighting, applied between your prediction and your measurement.</p>
+
+  <div class="widget">
+    <div class="widget-head"><span class="name">Widget 04 — Drive the loop yourself</span><span class="tag">predict / correct</span></div>
+    <div class="widget-body">
+      <p style="margin-top:0;font-size:15px;color:var(--muted)">A robot rolls down a hallway. The <strong style="color:var(--fused)">green band</strong> is its confidence bubble (width ±√P): "I'm somewhere in here." Here Q = 9 cm² per roll and R = 36 cm². Press the buttons and watch the bubble breathe.</p>
+      <canvas id="c4" height="190"></canvas>
+      <div class="controls">
+        <div class="btnrow">
+          <button id="w4move">Predict — roll forward</button>
+          <button id="w4gps" class="ghost">Correct — GPS ping</button>
+          <button id="w4reset" class="ghost">Reset</button>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="readout r-fused"><div class="k">Confidence bubble</div><div class="v" id="w4band">± 4 cm</div></div>
+        <div class="readout r-gps"><div class="k">Trust in last ping</div><div class="v" id="w4gain">—</div></div>
+        <div class="readout"><div class="k">True error</div><div class="v" id="w4err">0 cm</div></div>
+      </div>
+      <p class="hint" id="w4hint">Try rolling forward 6–8 times before pinging: the bubble balloons, so the next ping gets <em>high</em> trust and yanks the estimate back. Ping twice in a row and the second ping barely matters. The trust readout is exactly K = P/(P + R), computed live: after 6 rolls from a fresh start, P = 16 + 6·9 = 70, so K = 70/106 ≈ 66%.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. finale ============ -->
+<section>
+  <div class="step">Part 6 / Putting it all together</div>
+  <h2>Fusion in action: localizing a mobile robot</h2>
+  <p>Now run the full system. The robot drives its route while the Kalman filter works in real time: dead reckoning carries the estimate smoothly between fixes, and each GPS ping tugs it back toward the truth — tugging hard when confidence is low, gently when confidence is high.</p>
+  <p>Under the hood, this demo runs the Part 5 loop once per axis — a <strong>state</strong> of (x, y) with its own P for each. Real robots pack more into the <strong>state vector</strong>: heading θ, velocity, sometimes even the gyro's slowly-wandering bias, so the filter can learn and cancel it. And because turning makes the motion equations nonlinear (sines and cosines of θ), production systems use variants like the <strong>Extended Kalman Filter (EKF)</strong> — the identical predict–gain–correct loop, with the equations re-linearized around the current estimate at every step. The logic never changes: grow P by Q, shrink it through R, let K referee.</p>
+  <p>One more idea before you drive. The two noise sliders below aren't measurements — they're <strong>tuning parameters</strong>, the numbers a robotics engineer dials in as an honest confession of how bad each source is. <strong>Wheel slip sets Q</strong> (process noise) and <strong>GPS noise sets R</strong> (measurement noise). Because they feed the gain K = P/(P + R), each acts as <strong>inverse trust</strong>: cranking a source's noise number <em>up</em> turns its weight in the fusion <em>down</em>. And notice that formula only compares P against R — so what matters is the <strong>relative</strong> size of the two noise values, not either one on its own. Scale both up together and the trust split barely moves; the filter only shifts its weighting when one source gets worse <em>compared to the other</em>.</p>
+
+  <div class="widget">
+    <div class="widget-head"><span class="name">Widget 05 — The full filter</span><span class="tag">grand finale</span></div>
+    <div class="widget-body">
+      <p style="margin-top:0;font-size:15px;color:var(--muted)">The noise sliders are the filter's <strong>tuning knobs</strong> — Q and R, inverse trust in each source. The fusion cares about their <em>ratio</em>, and the trust readout shows the result live.</p>
+      <div class="toggles" style="margin-bottom:14px">
+        <button class="toggle t-truth" id="t-truth" aria-pressed="true">truth</button>
+        <button class="toggle t-dr" id="t-dr" aria-pressed="true">dead reckoning</button>
+        <button class="toggle t-gps" id="t-gps" aria-pressed="true">GPS pings</button>
+        <button class="toggle t-fused" id="t-fused" aria-pressed="true">Kalman fused</button>
+      </div>
+      <canvas id="c5" height="340"></canvas>
+      <div class="controls">
+        <div class="control">
+          <label><span>Wheel slip — sets Q</span><output id="w5slipOut">5</output></label>
+          <input type="range" id="w5slip" min="1" max="10" value="5" aria-label="Wheel slip, sets process noise Q">
+        </div>
+        <div class="control">
+          <label><span>GPS noise — sets R</span><output id="w5gnOut">5</output></label>
+          <input type="range" id="w5gn" min="1" max="10" value="5" aria-label="GPS noise, sets measurement noise R">
+        </div>
+        <div class="control">
+          <label><span>GPS rate</span><output id="w5grOut">1 ping / sec</output></label>
+          <input type="range" id="w5gr" min="1" max="5" value="3" aria-label="GPS ping rate">
+        </div>
+        <div class="btnrow">
+          <button id="w5go">Drive</button>
+          <button id="w5reset" class="ghost">Reset</button>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="readout r-dr"><div class="k">Dead reckoning err</div><div class="v" id="w5edr">—</div></div>
+        <div class="readout r-gps"><div class="k">GPS-only err</div><div class="v" id="w5egps">—</div></div>
+        <div class="readout r-fused"><div class="k">Kalman fused err</div><div class="v" id="w5ekf">—</div></div>
+        <div class="readout"><div class="k">Trust in last ping</div><div class="v" id="w5gain">—</div></div>
+      </div>
+      <p class="hint">Experiments to try: crank <strong>wheel slip (Q)</strong> to 10 — trust in GPS rises, because the filter now believes its own dead reckoning less. Crank <strong>GPS noise (R)</strong> to 10 instead — trust falls and the filter smooths right through the jitter. Now the key one: set <em>both</em> sliders to 2, drive, then set both to 8 and drive again — the paths get noisier, but the <strong>trust % stays almost the same</strong>, because K only responds to the Q : R <em>ratio</em>. Finally, slow the <strong>GPS rate</strong> — the fused line drifts a little between pings, then snaps back. The green line is almost always the best of the three.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>What the Kalman filter really is:</strong> a running conversation between a prediction and a measurement, where trust is dealt out automatically based on who's been more reliable lately. No magic — just the Widget 01 trust dial, turned thousands of times per second.
+  </div>
+</section>
+
+<!-- ============ 7. recap ============ -->
+<section>
+  <div class="step">Part 7 / Recap</div>
+  <h2>Five ideas to walk away with</h2>
+  <p><strong>1. Every sensor lies a little</strong> — random wobble is called noise, and it's unavoidable.</p>
+  <p><strong>2. Blending beats the best sensor.</strong> Weight each source by how much you trust it, and the combination wins.</p>
+  <p><strong>3. Dead reckoning drifts.</strong> Adding up your own motions is smooth and fast, but errors pile up forever.</p>
+  <p><strong>4. Global fixes are noisy but honest.</strong> GPS wobbles, but it never gets progressively lost — and a camera spotting mapped fiducial markers is the same kind of sensor, no satellites required. Any "here's where you are on the map" measurement plays this role.</p>
+  <p><strong>5. Predict, then correct.</strong> The Kalman filter carries the estimate with dead reckoning, corrects with GPS, and sets the trust dial automatically — trusting measurements more when its own confidence bubble has grown.</p>
+  <div class="eq">
+    <div class="line">σ — typical error size&nbsp;&nbsp;·&nbsp;&nbsp;σ² — variance&nbsp;&nbsp;·&nbsp;&nbsp;z — a measurement</div>
+    <div class="line">x̂ — the estimate&nbsp;&nbsp;·&nbsp;&nbsp;P — its variance (the confidence bubble, squared)</div>
+    <div class="line">Q — process noise&nbsp;&nbsp;·&nbsp;&nbsp;R — measurement noise&nbsp;&nbsp;·&nbsp;&nbsp;(z − x̂) — innovation</div>
+    <div class="line">K = P/(P + R) — the Kalman gain: the trust dial, set automatically</div>
+    <span class="who">Pocket glossary — everything on this page in eight symbols.</span>
+  </div>
+  <p style="margin-top:22px">You'll find this exact loop inside phones, drones, self-driving cars, Mars rovers, and the robot navigation code in competition robotics — anywhere a machine has to answer the oldest navigation question there is: <em>where am I?</em></p>
+</section>
+
+<div class="footer">Built as an interactive lesson · every simulation on this page runs the exact K = P/(P + R) loop from Part 5 — the numbers you see are the filter's real internal state, not an animation.</div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- helpers ---------- */
+function randn(){ // gaussian via Box-Muller
+  let u = 0, v = 0;
+  while(u === 0) u = Math.random();
+  while(v === 0) v = Math.random();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {
+  ink: css("--ink"), dr: css("--dr"), gps: css("--gps"),
+  fused: css("--fused"), muted: css("--muted"), grid: "#E4EDF2"
+};
+
+// Hi-DPI canvas that resizes with its container
+function setupCanvas(id, cssHeight){
+  const c = document.getElementById(id);
+  const ctx = c.getContext("2d");
+  function fit(){
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || c.parentElement.clientWidth;
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(cssHeight * dpr);
+    c.style.height = cssHeight + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (c._redraw) c._redraw();
+  }
+  new ResizeObserver(fit).observe(c);
+  fit();
+  return { c, ctx, W: () => c.clientWidth, H: () => cssHeight };
+}
+function grid(ctx, W, H){
+  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(let x = 28; x < W; x += 28){ ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for(let y = 28; y < H; y += 28){ ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+}
+function drawBot(ctx, x, y, color){
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+function polyline(ctx, pts, color, width, dash){
+  if(pts.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash || []);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ============================================================
+   WIDGET 1 — blend two 1-D sensors
+============================================================ */
+(() => {
+  const { c, ctx, W } = setupCanvas("c1", 170);
+  const H = 170;
+  const sigA = 3, sigB = 8;          // laser, sonar (cm)
+  let truth = 30 + Math.random()*40; // 0–100 cm shelf
+  let last = null;                   // {a,b,blend}
+  const slider = document.getElementById("w1slider");
+  const trustOut = document.getElementById("w1trust");
+
+  const pad = 40;
+  const toPx = v => pad + (v/100) * (W() - 2*pad);
+
+  function fuzz(v, sig, color, y){
+    const x = toPx(v), s = (sig/100)*(W()-2*pad);
+    ctx.save();
+    ctx.fillStyle = color; ctx.globalAlpha = 0.16;
+    ctx.beginPath();
+    ctx.roundRect(x - 2*s, y - 11, 4*s, 22, 11); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillRect(x - 1.5, y - 13, 3, 26);
+    ctx.restore();
+  }
+  function draw(){
+    const w = W();
+    ctx.clearRect(0, 0, w, H);
+    grid(ctx, w, H);
+    // shelf
+    ctx.strokeStyle = COL.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad, H-34); ctx.lineTo(w-pad, H-34); ctx.stroke();
+    ctx.fillStyle = COL.muted;
+    ctx.font = "12px 'IBM Plex Mono', monospace";
+    ctx.fillText("0 cm", pad-10, H-14);
+    ctx.fillText("100 cm", w-pad-24, H-14);
+
+    if(last){
+      fuzz(last.a, sigA, COL.fused, 52);
+      fuzz(last.b, sigB, COL.gps, 92);
+      ctx.font = "12px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = COL.fused; ctx.fillText("laser " + last.a.toFixed(1), toPx(last.a)+10, 48);
+      ctx.fillStyle = COL.gps;   ctx.fillText("sonar " + last.b.toFixed(1), toPx(last.b)+10, 88);
+      // blend marker
+      const bx = toPx(last.blend);
+      ctx.fillStyle = COL.dr;
+      ctx.beginPath();
+      ctx.moveTo(bx, H-46); ctx.lineTo(bx-7, H-60); ctx.lineTo(bx+7, H-60); ctx.closePath(); ctx.fill();
+      ctx.fillText("blend", bx-18, H-66);
+      // truth
+      const tx = toPx(truth);
+      ctx.strokeStyle = COL.ink; ctx.setLineDash([4,4]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(tx, 30); ctx.lineTo(tx, H-34); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = COL.ink; ctx.fillText("🐈 truth", tx+8, 30);
+    } else {
+      ctx.fillStyle = COL.muted;
+      ctx.font = "14px 'Public Sans', sans-serif";
+      ctx.fillText("Press “Take a reading” — the cat's true spot is hidden until you do.", pad, 60);
+    }
+  }
+  c._redraw = draw;
+
+  function wA(){ return slider.value / 100; }
+  slider.addEventListener("input", () => {
+    trustOut.textContent = slider.value + "% laser / " + (100-slider.value) + "% sonar";
+    if(last){ last.blend = wA()*last.a + (1-wA())*last.b; draw(); }
+  });
+  document.getElementById("w1read").addEventListener("click", () => {
+    truth = 30 + Math.random()*40;
+    const a = truth + randn()*sigA, b = truth + randn()*sigB;
+    last = { a, b, blend: wA()*a + (1-wA())*b };
+    draw();
+  });
+  document.getElementById("w1trials").addEventListener("click", () => {
+    const N = 300;
+    let eL = 0, eS = 0, eB = 0;
+    for(let i = 0; i < N; i++){
+      const t = 30 + Math.random()*40;
+      const a = t + randn()*sigA, b = t + randn()*sigB;
+      eL += Math.abs(a - t); eS += Math.abs(b - t);
+      eB += Math.abs(wA()*a + (1-wA())*b - t);
+    }
+    eL /= N; eS /= N; eB /= N;
+    const bars = document.getElementById("w1bars");
+    bars.hidden = false;
+    const max = Math.max(eL, eS, eB) * 1.15;
+    document.getElementById("w1bL").style.width = (eL/max*100)+"%";
+    document.getElementById("w1bS").style.width = (eS/max*100)+"%";
+    document.getElementById("w1bB").style.width = (eB/max*100)+"%";
+    document.getElementById("w1eL").textContent = eL.toFixed(2);
+    document.getElementById("w1eS").textContent = eS.toFixed(2);
+    document.getElementById("w1eB").textContent = eB.toFixed(2);
+    const hint = document.getElementById("w1hint");
+    if(eB < eL) hint.innerHTML = "<strong style='color:var(--fused)'>Your blend beat the laser alone!</strong> Average error in cm over " + N + " readings. Weighting by trust squeezes out extra accuracy.";
+    else hint.textContent = "Average error (cm) over " + N + " readings. Try nudging the dial near 85% laser and rerun — can you beat the laser by itself?";
+  });
+  draw();
+})();
+
+/* ============================================================
+   Shared figure-eight path for widgets 2/3/5
+============================================================ */
+function makePath(W, H){
+  const cx = W/2, cy = H/2, A = W*0.36, B = H*0.34;
+  return t => ({ x: cx + A*Math.sin(t), y: cy + B*Math.sin(2*t) });
+}
+const STEP = 0.022;         // path parameter per tick
+const CM_PER_PX = 1.2;      // pretend scale for readouts
+
+/* ============================================================
+   WIDGET 2 — dead reckoning drift
+============================================================ */
+(() => {
+  const HGT = 300;
+  const { c, ctx, W } = setupCanvas("c2", HGT);
+  let anim = null, t = 0, est = null, truthPts = [], drPts = [];
+  let bias = { x: 0, y: 0 };
+  const slip = document.getElementById("w2slip");
+  const out = document.getElementById("w2out");
+  const words = ["","tiny","tiny","low","low","medium","medium","high","high","brutal","brutal"];
+  slip.addEventListener("input", () => out.textContent = words[slip.value]);
+
+  function reset(){
+    cancelAnimationFrame(anim); anim = null;
+    t = 0; truthPts = []; drPts = []; bias = {x:0,y:0}; est = null;
+    document.getElementById("w2err").textContent = "0 cm";
+    document.getElementById("w2trend").textContent = "—";
+    draw();
+  }
+  function tick(){
+    const path = makePath(W(), HGT);
+    const p0 = path(t), p1 = path(t + STEP);
+    const dx = p1.x - p0.x, dy = p1.y - p0.y;
+    if(!est) est = { x: p0.x, y: p0.y };
+    const s = slip.value * 0.045;
+    // slowly wandering bias + per-step jitter = realistic drift
+    bias.x += randn() * s * 0.06;
+    bias.y += randn() * s * 0.06;
+    est.x += dx + randn()*s + bias.x;
+    est.y += dy + randn()*s + bias.y;
+    t += STEP;
+    truthPts.push(p1); drPts.push({ x: est.x, y: est.y });
+    if(truthPts.length > 1400){ truthPts.shift(); drPts.shift(); }
+    const err = Math.hypot(est.x - p1.x, est.y - p1.y) * CM_PER_PX;
+    document.getElementById("w2err").textContent = err.toFixed(0) + " cm";
+    document.getElementById("w2trend").textContent = err > 25 ? "growing ↑↑" : err > 8 ? "growing ↑" : "small";
+    draw();
+    if(t < STEP * 1200) anim = requestAnimationFrame(tick);
+  }
+  function draw(){
+    const w = W();
+    ctx.clearRect(0, 0, w, HGT);
+    grid(ctx, w, HGT);
+    polyline(ctx, truthPts, COL.ink, 2, [5,5]);
+    polyline(ctx, drPts, COL.dr, 2.5);
+    if(truthPts.length){
+      drawBot(ctx, truthPts[truthPts.length-1].x, truthPts[truthPts.length-1].y, COL.ink);
+      drawBot(ctx, drPts[drPts.length-1].x, drPts[drPts.length-1].y, COL.dr);
+    } else {
+      ctx.fillStyle = COL.muted;
+      ctx.font = "14px 'Public Sans', sans-serif";
+      ctx.fillText("Press “Drive” to start the robot.", 24, 34);
+    }
+  }
+  c._redraw = draw;
+  document.getElementById("w2go").addEventListener("click", () => {
+    if(anim) return;
+    if(t >= STEP*1200) reset();
+    anim = requestAnimationFrame(tick);
+  });
+  document.getElementById("w2reset").addEventListener("click", reset);
+  draw();
+})();
+
+/* ============================================================
+   WIDGET 3 — GPS pings
+============================================================ */
+(() => {
+  const HGT = 300;
+  const { c, ctx, W } = setupCanvas("c3", HGT);
+  let anim = null, t = 0, truthPts = [], pings = [], step = 0;
+  const noise = document.getElementById("w3noise");
+  const out = document.getElementById("w3out");
+  const words = ["","tiny","tiny","low","low","medium","medium","high","high","brutal","brutal"];
+  noise.addEventListener("input", () => out.textContent = words[noise.value]);
+
+  function reset(){
+    cancelAnimationFrame(anim); anim = null;
+    t = 0; step = 0; truthPts = []; pings = [];
+    document.getElementById("w3err").textContent = "— cm";
+    document.getElementById("w3trend").textContent = "—";
+    draw();
+  }
+  function tick(){
+    const path = makePath(W(), HGT);
+    const p = path(t += STEP);
+    truthPts.push(p);
+    if(truthPts.length > 1400) truthPts.shift();
+    if(++step % 26 === 0){
+      const s = noise.value * 3.2;
+      const g = { x: p.x + randn()*s, y: p.y + randn()*s };
+      pings.push(g);
+      if(pings.length > 40) pings.shift();
+      const err = Math.hypot(g.x - p.x, g.y - p.y) * CM_PER_PX;
+      document.getElementById("w3err").textContent = err.toFixed(0) + " cm";
+      document.getElementById("w3trend").textContent = "wobbling ~";
+    }
+    draw();
+    if(t < STEP * 1200) anim = requestAnimationFrame(tick);
+  }
+  function draw(){
+    const w = W();
+    ctx.clearRect(0, 0, w, HGT);
+    grid(ctx, w, HGT);
+    polyline(ctx, truthPts, COL.ink, 2, [5,5]);
+    ctx.fillStyle = COL.gps;
+    pings.forEach((g, i) => {
+      ctx.globalAlpha = 0.25 + 0.75 * (i+1)/pings.length;
+      ctx.beginPath(); ctx.arc(g.x, g.y, 4.5, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if(truthPts.length){
+      drawBot(ctx, truthPts[truthPts.length-1].x, truthPts[truthPts.length-1].y, COL.ink);
+    } else {
+      ctx.fillStyle = COL.muted;
+      ctx.font = "14px 'Public Sans', sans-serif";
+      ctx.fillText("Press “Drive” to start the robot.", 24, 34);
+    }
+  }
+  c._redraw = draw;
+  document.getElementById("w3go").addEventListener("click", () => {
+    if(anim) return;
+    if(t >= STEP*1200) reset();
+    anim = requestAnimationFrame(tick);
+  });
+  document.getElementById("w3reset").addEventListener("click", reset);
+  draw();
+})();
+
+/* ============================================================
+   WIDGET 4 — manual predict / correct in a hallway
+============================================================ */
+(() => {
+  const HGT = 190;
+  const { c, ctx, W } = setupCanvas("c4", HGT);
+  const pad = 40;
+  let truth, est, P, lastPing, gain;
+  const Q = 9;        // uncertainty added per move (cm^2-ish)
+  const R = 36;       // GPS noise variance
+  const moveNoise = 3, gpsNoise = 6;
+
+  function reset(){
+    truth = 8; est = 8; P = 16; lastPing = null; gain = null;
+    update(); draw();
+  }
+  function toPx(v){ return pad + (v/100) * (W() - 2*pad); }
+  function draw(){
+    const w = W();
+    ctx.clearRect(0, 0, w, HGT);
+    grid(ctx, w, HGT);
+    const y = HGT - 52;
+    // hallway
+    ctx.strokeStyle = COL.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad, y+22); ctx.lineTo(w-pad, y+22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, y-58); ctx.lineTo(w-pad, y-58); ctx.stroke();
+    ctx.fillStyle = COL.muted; ctx.font = "12px 'IBM Plex Mono', monospace";
+    ctx.fillText("0 cm", pad-8, HGT-14);
+    ctx.fillText("100 cm", w-pad-26, HGT-14);
+    // confidence bubble
+    const sd = Math.sqrt(P);
+    const bx = toPx(est), bw = (2*sd/100)*(w-2*pad);
+    ctx.fillStyle = COL.fused; ctx.globalAlpha = 0.18;
+    ctx.beginPath(); ctx.roundRect(bx-bw, y-46, 2*bw, 56, 14); ctx.fill();
+    ctx.globalAlpha = 1;
+    // estimate
+    drawBot(ctx, bx, y-18, COL.fused);
+    ctx.fillStyle = COL.fused;
+    ctx.fillText("estimate", bx-26, y-52);
+    // truth
+    const tx = toPx(truth);
+    ctx.strokeStyle = COL.ink; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(tx, y-58); ctx.lineTo(tx, y+22); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = COL.ink; ctx.fillText("truth", tx+6, y+14);
+    // last ping
+    if(lastPing !== null){
+      const gx = toPx(lastPing);
+      ctx.fillStyle = COL.gps;
+      ctx.beginPath(); ctx.arc(gx, y-18, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillText("ping", gx-12, y+2);
+    }
+  }
+  c._redraw = draw;
+  function update(){
+    document.getElementById("w4band").textContent = "± " + Math.sqrt(P).toFixed(1) + " cm";
+    document.getElementById("w4gain").textContent = gain === null ? "—" : (gain*100).toFixed(0) + "%";
+    document.getElementById("w4err").textContent = Math.abs(est - truth).toFixed(1) + " cm";
+  }
+  document.getElementById("w4move").addEventListener("click", () => {
+    if(truth > 90){ reset(); return; }
+    truth += 6 + randn()*0.4;
+    est += 6 + randn()*moveNoise;   // odometry says "+6" but slips a bit
+    P += Q;                         // less sure after every prediction
+    lastPing = null; gain = null;
+    update(); draw();
+  });
+  document.getElementById("w4gps").addEventListener("click", () => {
+    const z = truth + randn()*gpsNoise;
+    gain = P / (P + R);             // the automatic trust dial
+    est = est + gain * (z - est);
+    P = (1 - gain) * P;             // more sure after every correction
+    lastPing = z;
+    update(); draw();
+  });
+  document.getElementById("w4reset").addEventListener("click", reset);
+  reset();
+})();
+
+/* ============================================================
+   WIDGET 5 — full fusion demo
+============================================================ */
+(() => {
+  const HGT = 340;
+  const { c, ctx, W } = setupCanvas("c5", HGT);
+  let anim = null, t = 0, step = 0;
+  let truthPts = [], drPts = [], kfPts = [], pings = [];
+  let dr = null, kf = null, bias = null, lastGain = null;
+  let sumDR = 0, sumGPS = 0, sumKF = 0, nS = 0, nG = 0;
+
+  const show = { truth: true, dr: true, gps: true, fused: true };
+  ["truth","dr","gps","fused"].forEach(k => {
+    const b = document.getElementById("t-" + k);
+    b.addEventListener("click", () => {
+      show[k] = !show[k];
+      b.setAttribute("aria-pressed", show[k]);
+      draw();
+    });
+  });
+
+  const slip = document.getElementById("w5slip");
+  const gn = document.getElementById("w5gn");
+  const gr = document.getElementById("w5gr");
+  slip.addEventListener("input", () => document.getElementById("w5slipOut").textContent = slip.value);
+  gn.addEventListener("input", () => document.getElementById("w5gnOut").textContent = gn.value);
+  const rateWords = { 1:"rare pings", 2:"slow", 3:"1 ping / sec", 4:"fast", 5:"rapid" };
+  gr.addEventListener("input", () => document.getElementById("w5grOut").textContent = rateWords[gr.value]);
+
+  function reset(){
+    cancelAnimationFrame(anim); anim = null;
+    t = 0; step = 0;
+    truthPts = []; drPts = []; kfPts = []; pings = [];
+    dr = kf = bias = null; lastGain = null;
+    sumDR = sumGPS = sumKF = 0; nS = 0; nG = 0;
+    ["w5edr","w5egps","w5ekf","w5gain"].forEach(id => document.getElementById(id).textContent = "—");
+    draw();
+  }
+  function tick(){
+    const path = makePath(W(), HGT);
+    const p0 = path(t), p1 = path(t + STEP);
+    t += STEP;
+    if(!dr){
+      dr = { x: p0.x, y: p0.y };
+      kf = { x: p0.x, y: p0.y, Px: 16, Py: 16 };
+      bias = { x: 0, y: 0 };
+    }
+    // --- odometry measurement (shared by DR and KF) ---
+    const s = slip.value * 0.045;
+    bias.x += randn()*s*0.06; bias.y += randn()*s*0.06;
+    const odx = (p1.x - p0.x) + randn()*s + bias.x;
+    const ody = (p1.y - p0.y) + randn()*s + bias.y;
+    // dead reckoning: just add it up
+    dr.x += odx; dr.y += ody;
+    // Kalman predict: same motion, but confidence bubble grows.
+    // Q scales with slip² (like R scales with noise²) so equal slider
+    // settings keep the Q:R ratio — and therefore the gain — constant.
+    const Q = 4 * s * s;
+    kf.x += odx; kf.y += ody; kf.Px += Q; kf.Py += Q;
+    // --- GPS correction every so often ---
+    const interval = [0, 60, 40, 26, 16, 9][gr.value];
+    if(++step % interval === 0){
+      const gs = gn.value * 3.2, R = gs*gs;
+      const z = { x: p1.x + randn()*gs, y: p1.y + randn()*gs };
+      pings.push(z); if(pings.length > 50) pings.shift();
+      const Kx = kf.Px / (kf.Px + R), Ky = kf.Py / (kf.Py + R);
+      kf.x += Kx * (z.x - kf.x); kf.y += Ky * (z.y - kf.y);
+      kf.Px *= (1 - Kx); kf.Py *= (1 - Ky);
+      lastGain = (Kx + Ky) / 2;
+      sumGPS += Math.hypot(z.x - p1.x, z.y - p1.y); nG++;
+    }
+    truthPts.push(p1); drPts.push({x:dr.x, y:dr.y}); kfPts.push({x:kf.x, y:kf.y});
+    if(truthPts.length > 1400){ truthPts.shift(); drPts.shift(); kfPts.shift(); }
+    sumDR += Math.hypot(dr.x - p1.x, dr.y - p1.y);
+    sumKF += Math.hypot(kf.x - p1.x, kf.y - p1.y);
+    nS++;
+    if(step % 12 === 0){
+      document.getElementById("w5edr").textContent = (sumDR/nS*CM_PER_PX).toFixed(0) + " cm";
+      if(nG) document.getElementById("w5egps").textContent = (sumGPS/nG*CM_PER_PX).toFixed(0) + " cm";
+      document.getElementById("w5ekf").textContent = (sumKF/nS*CM_PER_PX).toFixed(0) + " cm";
+      if(lastGain !== null) document.getElementById("w5gain").textContent = (lastGain*100).toFixed(0) + "%";
+    }
+    draw();
+    if(t < STEP * 1600) anim = requestAnimationFrame(tick);
+  }
+  function draw(){
+    const w = W();
+    ctx.clearRect(0, 0, w, HGT);
+    grid(ctx, w, HGT);
+    if(show.truth) polyline(ctx, truthPts, COL.ink, 2, [5,5]);
+    if(show.dr) polyline(ctx, drPts, COL.dr, 2.2);
+    if(show.gps){
+      ctx.fillStyle = COL.gps;
+      pings.forEach((g, i) => {
+        ctx.globalAlpha = 0.2 + 0.8*(i+1)/pings.length;
+        ctx.beginPath(); ctx.arc(g.x, g.y, 4, 0, Math.PI*2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+    if(show.fused){
+      polyline(ctx, kfPts, COL.fused, 3);
+      // confidence bubble around fused estimate
+      if(kf){
+        const r = Math.sqrt((kf.Px + kf.Py)/2) + 5;
+        ctx.strokeStyle = COL.fused; ctx.globalAlpha = 0.5; ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.arc(kf.x, kf.y, r, 0, Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+    }
+    if(truthPts.length){
+      const last = truthPts[truthPts.length-1];
+      if(show.truth) drawBot(ctx, last.x, last.y, COL.ink);
+      if(show.dr) drawBot(ctx, dr.x, dr.y, COL.dr);
+      if(show.fused) drawBot(ctx, kf.x, kf.y, COL.fused);
+    } else {
+      ctx.fillStyle = COL.muted;
+      ctx.font = "14px 'Public Sans', sans-serif";
+      ctx.fillText("Press “Drive” — then toggle the layers above to compare estimates.", 24, 34);
+    }
+  }
+  c._redraw = draw;
+  document.getElementById("w5go").addEventListener("click", () => {
+    if(anim) return;
+    if(t >= STEP*1600) reset();
+    anim = requestAnimationFrame(tick);
+  });
+  document.getElementById("w5reset").addEventListener("click", reset);
+  reset();
+})();
+
+})();
+</script>
+</body>
+</html>
