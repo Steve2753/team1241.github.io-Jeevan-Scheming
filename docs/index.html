@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team 1241 — Resources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F7F9;
+  --grid:#DCE6EC;
+  --panel:#FFFFFF;
+  --ink:#16283B;
+  --muted:#5B7186;
+  --line:#C7D5DE;
+  --accent:#0B8F6B;
+  --accent-soft:#DFF3EC;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    var(--paper);
+  background-size:28px 28px, 28px 28px, auto;
+  color:var(--ink);
+  font-family:"Public Sans", system-ui, -apple-system, sans-serif;
+  font-size:17px;
+  line-height:1.65;
+}
+.wrap{max-width:860px;margin:0 auto;padding:64px 20px 96px}
+
+header h1{
+  font-family:"Space Grotesk", sans-serif;
+  font-size:2.2rem;
+  line-height:1.2;
+}
+header p{
+  color:var(--muted);
+  margin-top:8px;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:0.95rem;
+}
+
+ul.pages{list-style:none;margin-top:40px;display:grid;gap:16px}
+ul.pages a{
+  display:block;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:20px 24px;
+  text-decoration:none;
+  color:inherit;
+  transition:border-color .15s ease, background .15s ease;
+}
+ul.pages a:hover{border-color:var(--accent);background:var(--accent-soft)}
+ul.pages .title{
+  font-family:"Space Grotesk", sans-serif;
+  font-weight:700;
+  font-size:1.15rem;
+}
+ul.pages .desc{color:var(--muted);margin-top:4px;font-size:0.95rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Team 1241 — Resources</h1>
+    <p>FRC Team 1241 · notes &amp; interactive lessons</p>
+  </header>
+
+  <ul class="pages">
+    <li>
+      <a href="where-am-i-kalman-filters.html">
+        <span class="title">Where Am I? — Sensor Fusion &amp; Kalman Filters</span>
+        <span class="desc">How a robot combines dead reckoning and noisy absolute measurements into one confident position estimate.</span>
+      </a>
+    </li>
+  </ul>
+</div>
+</body>
+</html>
