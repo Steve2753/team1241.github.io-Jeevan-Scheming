@@ -1,130 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Team 1241 — Resources</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --paper:#F4F7F9;
-  --grid:#DCE6EC;
-  --panel:#FFFFFF;
-  --ink:#16283B;
-  --muted:#5B7186;
-  --line:#C7D5DE;
-  --accent:#0B8F6B;
-  --accent-soft:#DFF3EC;
-  --radius:10px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team 1241 — Resources</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --paper: #F4F7F9;
+      --grid: #DCE6EC;
+      --panel: #FFFFFF;
+      --ink: #16283B;
+      --muted: #5B7186;
+      --line: #C7D5DE;
+      --accent: #0B8F6B;
+      --accent-soft: #DFF3EC;
+      --radius: 10px;
+    }
 
-body{
-  background:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
-    var(--paper);
-  background-size:28px 28px, 28px 28px, auto;
-  color:var(--ink);
-  font-family:"Public Sans", system-ui, -apple-system, sans-serif;
-  font-size:17px;
-  line-height:1.65;
-}
-.wrap{max-width:860px;margin:0 auto;padding:64px 20px 96px}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-header h1{
-  font-family:"Space Grotesk", sans-serif;
-  font-size:2.2rem;
-  line-height:1.2;
-}
-header p{
-  color:var(--muted);
-  margin-top:8px;
-  font-family:"IBM Plex Mono", monospace;
-  font-size:0.95rem;
-}
+    body {
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px, 28px 28px, auto;
+      color: var(--ink);
+      font-family: "Public Sans", system-ui, -apple-system, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+    }
 
-ul.pages{list-style:none;margin-top:40px;display:grid;gap:16px}
-ul.pages a{
-  display:block;
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:20px 24px;
-  text-decoration:none;
-  color:inherit;
-  transition:border-color .15s ease, background .15s ease;
-}
-ul.pages a:hover{border-color:var(--accent);background:var(--accent-soft)}
-ul.pages .num{
-  display:block;
-  font-family:"IBM Plex Mono", monospace;
-  font-size:12px;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:var(--muted);
-  margin-bottom:6px;
-}
-ul.pages .title{
-  font-family:"Space Grotesk", sans-serif;
-  font-weight:700;
-  font-size:1.15rem;
-}
-ul.pages .desc{color:var(--muted);margin-top:4px;font-size:0.95rem}
-</style>
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 20px 96px
+    }
+
+    header h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 2.2rem;
+      line-height: 1.2;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.95rem;
+    }
+
+    .section-title {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.5rem;
+      margin-top: 56px;
+      margin-bottom: -16px;
+      color: var(--ink);
+    }
+
+    ul.pages {
+      list-style: none;
+      margin-top: 40px;
+      display: grid;
+      gap: 16px
+    }
+
+    ul.pages a {
+      display: block;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    ul.pages a:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft)
+    }
+
+    ul.pages .num {
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    ul.pages .title {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+
+    ul.pages .desc {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 0.95rem
+    }
+  </style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <h1>Team 1241 — Resources</h1>
-    <p>FRC Team 1241 · notes &amp; interactive lessons</p>
-  </header>
 
-  <ul class="pages">
-    <li>
-      <a href="boxes-arrows-circles-block-diagrams.html">
-        <span class="num">Lesson 01 · start here</span>
-        <span class="title">Boxes, Arrows, Circles — Reading Block Diagrams</span>
-        <span class="desc">The three-symbol picture language every control system is drawn in — signals, blocks, summing junctions, and open vs. closed loops.</span>
-      </a>
-    </li>
-    <li>
-      <a href="close-the-loop-pid-control.html">
-        <span class="num">Lesson 02</span>
-        <span class="title">Close the Loop — Feedback &amp; PID Control</span>
-        <span class="desc">Measure, compare, correct: tune P, I, and D yourself on a live simulated elevator and learn what each term is actually for.</span>
-      </a>
-    </li>
-    <li>
-      <a href="push-first-feedforward-control.html">
-        <span class="num">Lesson 03</span>
-        <span class="title">Push First, Correct Later — Feedforward Control</span>
-        <span class="desc">Model the mechanism, predict the push it needs, and command it before any error exists — flywheels, arms, elevators, and WPILib's kS·kV·kA.</span>
-      </a>
-    </li>
-    <li>
-      <a href="four-wheels-one-motion-swerve-kinematics.html">
-        <span class="num">Lesson 04</span>
-        <span class="title">Four Wheels, One Motion — Kinematics &amp; Swerve</span>
-        <span class="desc">The geometry dictionary between "the business end goes here" and "each joint does this" — forward and inverse kinematics, from a two-joint arm to a full swerve model, skew and all.</span>
-      </a>
-    </li>
-    <li>
-      <a href="count-your-steps-odometry.html">
-        <span class="num">Lesson 05</span>
-        <span class="title">Count Your Steps — Odometry</span>
-        <span class="desc">Tracking pose by adding up every wheel step — encoders, gyros, drift, and why the bookkeeping eventually needs outside help.</span>
-      </a>
-    </li>
-    <li>
-      <a href="where-am-i-kalman-filters.html">
-        <span class="num">Lesson 06</span>
-        <span class="title">Where Am I? — Sensor Fusion &amp; Kalman Filters</span>
-        <span class="desc">How a robot combines dead reckoning and noisy absolute measurements into one confident position estimate.</span>
-      </a>
-    </li>
-  </ul>
-</div>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Team 1241 — Resources</h1>
+      <p>FRC Team 1241 · notes &amp; interactive lessons</p>
+    </header>
+
+    <h2 class="section-title">Programming &amp; Controls</h2>
+    <ul class="pages">
+      <li>
+        <a href="boxes-arrows-circles-block-diagrams.html">
+          <span class="num">Lesson 01 · start here</span>
+          <span class="title">Boxes, Arrows, Circles — Reading Block Diagrams</span>
+          <span class="desc">The three-symbol picture language every control system is drawn in — signals, blocks,
+            summing junctions, and open vs. closed loops.</span>
+        </a>
+      </li>
+      <li>
+        <a href="close-the-loop-pid-control.html">
+          <span class="num">Lesson 02</span>
+          <span class="title">Close the Loop — Feedback &amp; PID Control</span>
+          <span class="desc">Measure, compare, correct: tune P, I, and D yourself on a live simulated elevator and learn
+            what each term is actually for.</span>
+        </a>
+      </li>
+      <li>
+        <a href="push-first-feedforward-control.html">
+          <span class="num">Lesson 03</span>
+          <span class="title">Push First, Correct Later — Feedforward Control</span>
+          <span class="desc">Model the mechanism, predict the push it needs, and command it before any error exists —
+            flywheels, arms, elevators, and WPILib's kS·kV·kA.</span>
+        </a>
+      </li>
+      <li>
+        <a href="four-wheels-one-motion-swerve-kinematics.html">
+          <span class="num">Lesson 04</span>
+          <span class="title">Four Wheels, One Motion — Kinematics &amp; Swerve</span>
+          <span class="desc">The geometry dictionary between "the business end goes here" and "each joint does this" —
+            forward and inverse kinematics, from a two-joint arm to a full swerve model, skew and all.</span>
+        </a>
+      </li>
+      <li>
+        <a href="count-your-steps-odometry.html">
+          <span class="num">Lesson 05</span>
+          <span class="title">Count Your Steps — Odometry</span>
+          <span class="desc">Tracking pose by adding up every wheel step — encoders, gyros, drift, and why the
+            bookkeeping eventually needs outside help.</span>
+        </a>
+      </li>
+      <li>
+        <a href="where-am-i-kalman-filters.html">
+          <span class="num">Lesson 06</span>
+          <span class="title">Where Am I? — Sensor Fusion &amp; Kalman Filters</span>
+          <span class="desc">How a robot combines dead reckoning and noisy absolute measurements into one confident
+            position estimate.</span>
+        </a>
+      </li>
+    </ul>
+
+    <h2 class="section-title">Electrical</h2>
+    <ul class="pages">
+      <li>
+        <a href="basics-of-electricity.html">
+          <span class="num">Lesson 07</span>
+          <span class="title">Basics of Electricity</span>
+          <span class="desc">A primer on volts, amps, resistance, Ohm's Law, and how electrical concepts relate to your
+            robot's performance.</span>
+        </a>
+      </li>
+    </ul>
+  </div>
 </body>
+
 </html>
