@@ -176,4 +176,4 @@ function status(k,t){return '<span class="status '+k+'">'+t+'</span>'}
   document.getElementById("w4x60").addEventListener("click",()=>choose("x60"));document.getElementById("w4x44").addEventListener("click",()=>choose("x44"));req.addEventListener("input",()=>document.getElementById("w4reqOut").textContent=req.value+" A");lim.addEventListener("input",()=>document.getElementById("w4limOut").textContent=lim.value+" A");run.addEventListener("click",()=>{running=!running;run.textContent=running?"Pause":"Run";last=performance.now()});document.getElementById("w4reset").addEventListener("click",reset);det.addEventListener("toggle",drawPlot);q.c._redraw=drawMain;plot.c._redraw=drawPlot;if(!reduceMotion)new IntersectionObserver((entries,observer)=>{if(entries[0].isIntersecting){running=true;run.textContent="Pause";last=performance.now();observer.disconnect()}},{threshold:.25}).observe(q.c);requestAnimationFrame(tick);
 })();
 })();
-</script></body></html>
+</script><script src="search-highlight.js"></script></body></html>
