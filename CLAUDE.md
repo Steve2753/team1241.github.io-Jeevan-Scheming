@@ -20,6 +20,7 @@ GitHub Pages; lesson links are pasted into Linear docs for students.
 | `count-your-steps-odometry.html` | Odometry: pose, encoders vs ground truth, heading error × distance, full swerve odometry with drift/bumps/reset, pose-estimator hand-off | Complete |
 | `basics-of-electricity.html` | Interactive electrical foundations: voltage/current/resistance loop, series vs parallel, measurement safety, battery sag, power, brownouts | Complete |
 | `feeding-the-kraken-electrical.html` | Kraken X60/X44 electrical: distribution, terminal torque, wire gauge, current limiting, thermal behavior | Complete |
+| `crimping-cat6-ethernet.html` | Cat 6 Ethernet termination: T568A/B, preparation, pair integrity, mirrored-mistake salvage, testing | Complete |
 
 Reading order: block diagrams → PID feedback → feedforward →
 kinematics/swerve → odometry → Kalman (the index numbers them 01–06 and each
@@ -29,7 +30,7 @@ and feature stacking** — each page may assume everything earlier in the
 chain, and estimation (Kalman) stays after the drive lessons it builds on.
 Slot any new lesson at the point in the chain its prerequisites demand.
 
-Electrical reading order: basics of electricity → Kraken X60/X44 electrical.
+Electrical reading order: basics of electricity → Kraken X60/X44 electrical → Cat 6 Ethernet crimping.
 
 Reference sources for the swerve arc (kinematics, odometry, and the future
 control-schemes lesson): the WPILib kinematics-and-odometry docs
