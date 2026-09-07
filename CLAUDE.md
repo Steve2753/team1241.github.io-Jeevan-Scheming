@@ -20,7 +20,7 @@ GitHub Pages; lesson links are pasted into Linear docs for students.
 | `count-your-steps-odometry.html` | Odometry: pose, encoders vs ground truth, heading error × distance, full swerve odometry with drift/bumps/reset, pose-estimator hand-off | Complete |
 | `basics-of-electricity.html` | Interactive electrical foundations: voltage/current/resistance loop, series vs parallel, measurement safety, battery sag, power, brownouts | Complete |
 | `feeding-the-kraken-electrical.html` | Kraken X60/X44 electrical: distribution, terminal torque, wire gauge, current limiting, thermal behavior | Complete |
-| `crimping-cat6-ethernet.html` | Cat 6 Ethernet termination: T568A/B, preparation, pair integrity, mirrored-mistake salvage, testing | Complete |
+| `crimping-cat6-ethernet.html` | Cat 6 Ethernet termination: T568A/B, preparation, pair integrity, mirrored-mistake salvage, testing | Requires pictures to better describe crimping techniques |
 
 Reading order: block diagrams → PID feedback → feedforward →
 kinematics/swerve → odometry → Kalman (the index numbers them 01–06 and each
