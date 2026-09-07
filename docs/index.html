@@ -120,7 +120,8 @@
 
     .lesson-search{margin-top:36px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 30px -20px rgba(22,40,59,.35)}
     .lesson-search label{display:block;margin-bottom:8px;font:600 13px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
-    .lesson-search input{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:8px;color:var(--ink);background:#FBFDFE;font:17px "Public Sans",sans-serif}
+    .lesson-search input{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:8px;color:var(--ink);background:#FBFDFE;font:17px "Public Sans",sans-serif;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease}
+    .lesson-search input:hover{border-color:var(--accent);background:#fff;box-shadow:0 7px 18px -12px rgba(11,143,107,.7);transform:translateY(-1px)}
     .lesson-search input:focus{outline:3px solid var(--accent-soft);border-color:var(--accent)}
     .search-status{min-height:24px;margin-top:9px;color:var(--muted);font:12.5px "IBM Plex Mono",monospace}
     .search-results{display:grid;gap:10px;margin-top:10px}
@@ -130,6 +131,10 @@
     .result-count{flex:none;color:var(--accent);font:600 11px "IBM Plex Mono",monospace;text-transform:uppercase}
     .search-snippet{margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5}
     .search-snippet mark{padding:0 .1em;border-radius:2px;background:#FFE58A;color:var(--ink)}
+    @media (prefers-reduced-motion: reduce) {
+      .lesson-search input{transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+      .lesson-search input:hover{transform:none}
+    }
   </style>
 </head>
 
